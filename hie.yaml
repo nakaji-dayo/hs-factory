@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "hs-factory:lib"
+
+    - path: "./app/Main.hs"
+      component: "hs-factory:exe:hs-factory-exe"
+
+    - path: "./app/Paths_hs_factory.hs"
+      component: "hs-factory:exe:hs-factory-exe"
+
+    - path: "./test"
+      component: "hs-factory:test:hs-factory-test"
