@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 057a4bdc188b9c3c49f476da7bfa3a6c1442947826d7535a78ab67108960aaff
+-- hash: 730013f8b335baaaed5c280261d901b6c873cbf6b05492a953945e5ff740f822
 
 name:           hs-factory
 version:        0.1.0.0
@@ -36,7 +36,10 @@ library
       base >=4.7 && <5
     , data-default-class
     , do-notation
+    , generic-lens
+    , indexed
     , indexed-extras
+    , microlens
     , type-level-sets
   default-language: Haskell2010
 
@@ -51,8 +54,11 @@ executable hs-factory-exe
       base >=4.7 && <5
     , data-default-class
     , do-notation
+    , generic-lens
     , hs-factory
+    , indexed
     , indexed-extras
+    , microlens
     , type-level-sets
   default-language: Haskell2010
 
@@ -68,7 +74,10 @@ test-suite hs-factory-test
       base >=4.7 && <5
     , data-default-class
     , do-notation
+    , generic-lens
     , hs-factory
+    , indexed
     , indexed-extras
+    , microlens
     , type-level-sets
   default-language: Haskell2010

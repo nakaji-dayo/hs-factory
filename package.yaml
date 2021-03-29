@@ -22,10 +22,14 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - type-level-sets
+- indexed
 - indexed-extras
 - do-notation
 # extra?
 - data-default-class
+- microlens
+- generic-lens
+
 
 library:
   source-dirs: src
