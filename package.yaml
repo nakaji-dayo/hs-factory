@@ -34,16 +34,16 @@ dependencies:
 library:
   source-dirs: src
 
-executables:
-  hs-factory-exe:
-    main:                Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - hs-factory
+# executables:
+#   hs-factory-exe:
+#     main:                Main.hs
+#     source-dirs:         app
+#     ghc-options:
+#     - -threaded
+#     - -rtsopts
+#     - -with-rtsopts=-N
+#     dependencies:
+#     - hs-factory
 
 tests:
   hs-factory-test:
