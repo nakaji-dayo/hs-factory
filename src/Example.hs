@@ -43,6 +43,8 @@ instance Default Tweet
 
 -- idの生成どうする
 --   clientで生成できるケースとseqのケースとかある。両方サポートしたい
+--   -- preinsert, postinsertで
+--      idの生成、生成したidでのmodofyをする <- よさそう
 -- myseed :: MySeed m n
 myseed = do
   t <- new @"taro" @User $ Prelude.id
