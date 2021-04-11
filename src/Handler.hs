@@ -6,9 +6,12 @@ module Handler where
 
 import           Control.Monad.IO.Class (MonadIO (liftIO))
 import           Control.Monad.Reader   (ReaderT (ReaderT, runReaderT))
+import           Data.IORef
 import           GHC.Generics
 import           Lib
-newtype Handler a = Handler { unHandler :: ReaderT Int IO a}
+
+type Context = IORef Int
+newtype Handler a = Handler { unHandler :: ReaderT Context IO a}
   deriving (Functor, Applicative, Monad, MonadIO)
 
 data User = User
@@ -24,7 +27,9 @@ data Tweet = Tweet
   , postAt :: Int -- todo: use Time
   } deriving (Show, Generic)
 
-runHandler (Handler h) = runReaderT h 0
+runHandler (Handler h) = do
+  r <- newIORef 0
+  runReaderT h r
 
 getTweets :: Int -> Handler [Tweet]
 getTweets _userid = do

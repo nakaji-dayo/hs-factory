@@ -13,70 +13,73 @@
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE UndecidableInstances  #-}
 module Lib where
 
 import           Control.Exception           (assert)
 import           Control.Monad.Indexed.State
 import           Control.Monad.Indexed.Trans (ilift)
+import           Control.Monad.Trans.Ix      (liftIx)
 import           Data.Default.Class
 import           Data.Generics.Labels
 import           Data.Kind                   (Constraint)
 import           Data.Type.Map
 import           GHC.Generics
 import           GHC.OverloadedLabels
-import           GHC.TypeLits                (KnownSymbol)
+import           GHC.TypeLits                (AppendSymbol, KnownSymbol,
+                                              SomeSymbol, Symbol)
 import           Language.Haskell.DoNotation
 import           Lens.Micro
 import           Prelude                     hiding (Monad (..), pure)
-import qualified Prelude                     (Monad (..), pure)
+import qualified Prelude                     as P (Monad (..), pure)
+import Control.Monad (forM_, void, forM)
+import Data.Bifunctor (bimap, first, Bifunctor (second))
 
-class EntityW a where
-  insert :: a -> IO ()
+type IxSeed m s s' a = IxStateT m (Map s, [EntityW m]) (Map s', [EntityW m]) a
+type AddSeed m s k v a = IxSeed m s ((k ':-> v) : s)  a
 
-new ::  forall k a m f.(Default a, Factory f) => (a -> a) -> IxStateT f (Map m) (Map ((k ':-> a) : m)) a
+new ::  forall k a s m. (Default a, Factory m, Entity m a) => (a -> a) -> AddSeed m s k a a
 new m = do
   let x = m def
-  imodify (Ext (Var :: Var k) x)
+  imodify $ bimap (Ext (Var :: Var k) x) (EntityW x :)
+  pure x
+
+new_ ::  forall a s m. (Default a, Factory m, Entity m a) => (a -> a) -> IxSeed m s s a
+new_ m = do
+  let x = m def
+  imodify $ second (EntityW x :)
   pure x
 
 -- new' :: forall k a m. (Default a) => IxStateT IO (Map m) (Map ((k ':-> a) : m)) a
 -- new' = new Prelude.id
 
-get :: forall k a m f. (IsMember k a m, Factory f) => IxStateT f (Map m) (Map m) a
+get :: forall k a m f. (IsMember k a m, Factory f) => IxSeed f m m a
 get =
-  lookp (Var :: Var k) <$> iget
+  lookp (Var :: Var k) . fst <$> iget
 
-update :: (IsMember k a m) => Var k -> (a -> a) -> IxStateT IO (Map m) (Map ((k ':-> a) : m)) a
-update k m = do
-  x <- m . lookp k <$> iget
-  imodify (Ext k x)
+update :: forall k a s m. (IsMember k a s, Updatable k a s s, Factory m)
+  => (a -> a) -> IxSeed m s s a
+update m = do
+  x <- m . lookp (Var :: Var k) . fst <$> iget
+  imodify $ first (\ s -> Data.Type.Map.update s (Var :: Var k) x)
   pure x
 
 class Monad m => Factory m where
   type Entity m :: * -> Constraint
   insertM :: Entity m a => a -> m ()
+  cleanup :: m ()
 
-type FactoryW m i j a = IxStateT m i j a
+data EntityW m = forall a. (Entity m a) => EntityW a
 
-withFactory :: (SeedS m i, Factory m)
-  => IxStateT m (Map '[]) i a -> IxStateT m i j b -> m (b, j)
-withFactory seed f =
-  runIxStateT g Empty
+withFactory :: (Factory m)
+   => IxStateT m (Map '[], [EntityW m]) (Map i, [EntityW m]) a -> IxStateT m (Map i, [EntityW m]) j b -> m ()
+withFactory seed f = do
+  runIxStateT g (Empty, [])
+  cleanup
   where
     g = do
       seed
-      m <- iget
-      ilift $ sinsert m
+      xs <- igets snd
+      ilift . mapM_ insert' $ reverse xs
       f
-
--- internal, UndecidableInstances
-class SeedS m s where
-  sinsert :: (Factory m, Applicative m) => s -> m ()
-instance SeedS m (Map '[]) where
-  sinsert _ = pure ()
-instance (SeedS m (Map s), Entity m v) => SeedS m (Map ((k :-> v) ': s)) where
-  sinsert (Ext k v s) =
-    insertM v Prelude.>> sinsert s
-
-type MySeed i j = IxStateT IO (Map i) (Map j) ()
+    insert' :: Factory m => EntityW m -> m ()
+    insert' (EntityW x) = insertM x
